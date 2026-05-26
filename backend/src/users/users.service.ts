@@ -1,26 +1,47 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { User } from './entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user';
+   constructor(
+    @InjectRepository(User)
+    private readonly repo: Repository<User>,
+  ) {}
+
+   async findById(id: number): Promise<User | null> {
+     return this.repo.findOne({ where: { id } });
   }
 
-  findAll() {
-    return `This action returns all users`;
+    async create(firstName: string, lastName: string, email: string, password: string): Promise<User> {
+      const exists = await this.repo.findOne({
+        where: [{ email }],
+      });
+      if (exists) {
+        throw new ConflictException(
+          exists.email=== email? 'Email taken' : 'Email taken',
+        );
+      }
+  
+      const hashed = await bcrypt.hash(password, 12);
+      const user = this.repo.create({ firstName,lastName, email, password: hashed })
+    return this.repo.save(user);
+  }
+ 
+  async findByEmail(email: string): Promise<User | null> {
+    return this.repo.findOne({ where: { email } });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
-  }
+  async validateCredentials(email: string, password: string): Promise<User | null>
+  {
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+    const user = await this.findByEmail(email);
+    if (!user) return null;
+    const valid = await bcrypt.compare(password, user.password);
+    return valid ? user : null;
   }
+  }
+  
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
-  }
-}

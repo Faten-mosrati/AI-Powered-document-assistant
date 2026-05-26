@@ -4,11 +4,11 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
 import { TypeOrmModule } from '@nestjs/typeorm/dist/typeorm.module';
 import { UsersModule } from './users/users.module';
-import { User } from './users/entities/user.entity';
 import { DataSource } from 'typeorm';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(),
+  imports: [ConfigModule.forRoot({isGlobal: true}),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -20,6 +20,7 @@ import { DataSource } from 'typeorm';
       autoLoadEntities: true,
     }),
     UsersModule,
+    AuthModule,
 
   ],
   controllers: [AppController],
